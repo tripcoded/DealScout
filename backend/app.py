@@ -241,6 +241,8 @@ async def search_link(payload: LinkSearchRequest):
 
     else:
         return {"error": "Platform not supported"}
+    
+    title = data.get("title") or "Product"
 
     prod = {
         "product_id": data["url"],
