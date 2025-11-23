@@ -8,3 +8,9 @@ Pillow
 numpy
 torch
 torchvision
+fastapi
+uvicorn
+pillow
+numpy
+requests
+python-multipart
