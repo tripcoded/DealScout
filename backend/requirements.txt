@@ -1,8 +1,10 @@
 fastapi
 uvicorn
+requests
+beautifulsoup4
 python-multipart
-pillow
+pydantic
+Pillow
 numpy
 torch
 torchvision
-requests

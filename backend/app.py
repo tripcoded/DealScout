@@ -1,3 +1,5 @@
+from fastapi import HTTPException
+import requests
 # backend/app.py
 from fastapi import FastAPI, UploadFile, File
 app = FastAPI()
@@ -19,14 +21,6 @@ from catalog import PRODUCTS
 from scrapers.amazon import scrape_amazon
 from scrapers.flipkart import scrape_flipkart
 from scrapers.meesho import scrape_meesho
-from concurrent.futures import ThreadPoolExecutor
-import asyncio
-# Thread executor for Playwright sync scrapers
-executor = ThreadPoolExecutor(max_workers=5)
-
-def run_sync(func, *args):
-    loop = asyncio.get_event_loop()
-    return loop.run_in_executor(executor, func, *args)
 
 
 def detect_platform(url: str):
@@ -226,25 +220,24 @@ class HistoryEntry(BaseModel):
 class HistoryResponse(BaseModel):
     session_id: str
     history: List[HistoryEntry]
+
 @app.post("/search/link")
 async def search_link(payload: LinkSearchRequest):
-    platform = detect_platform(payload.url)
+    url = payload.url
+    platform = detect_platform(url)
 
+    # ---- CALL SCRAPER (SYNC) ----
     if platform == "amazon":
-        data = await run_sync(scrape_amazon, payload.url)
-
+        data = scrape_amazon(url)
     elif platform == "flipkart":
-        data = await run_sync(scrape_flipkart, payload.url)
-
+        data = scrape_flipkart(url)
     elif platform == "meesho":
-        data = await run_sync(scrape_meesho, payload.url)
-
+        data = scrape_meesho(url)
     else:
         return {"error": "Platform not supported"}
-    
-    title = data.get("title") or "Product"
 
-    prod = {
+    # ---- OUTPUT FORMAT THAT FRONTEND EXPECTS ----
+    product_result = {
         "product_id": data["url"],
         "title": data["title"],
         "image_url": data["image"],
@@ -260,25 +253,10 @@ async def search_link(payload: LinkSearchRequest):
         "best_platform": data["platform"],
     }
 
-    return {"query_type": "link", "results": [prod]}
-
-
-@app.get("/history", response_model=HistoryResponse)
-async def get_history(session_id: str = "anonymous"):
-    items = HISTORY[session_id]
-    history = []
-    for i, it in enumerate(items):
-        title = it["products"][0].title if it["products"] else "Unknown"
-        history.append(
-            HistoryEntry(
-                type=it["type"],
-                url=it.get("url"),
-                first_product_title=title,
-                timestamp_index=i,
-            )
-        )
-    return HistoryResponse(session_id=session_id, history=history)
-
+    return {
+        "query_type": "link",
+        "results": [product_result]
+    }
 
 @app.get("/")
 async def root():
