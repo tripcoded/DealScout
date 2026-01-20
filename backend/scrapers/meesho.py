@@ -1,38 +1,26 @@
-from playwright.async_api import async_playwright
+import requests
+from bs4 import BeautifulSoup
+import re
 
-async def scrape_meesho(url: str):
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        page = await browser.new_page()
+HEADERS = {"User-Agent": "Mozilla/5.0"}
 
-        await page.goto(url, timeout=60000)
+def scrape_meesho(url: str) -> dict:
+    r = requests.get(url, headers=HEADERS, timeout=20)
+    soup = BeautifulSoup(r.text, "html.parser")
 
-        # Title
-        try:
-            title = await page.locator("h1").first.inner_text()
-            title = title.strip()
-        except:
-            title = "Unknown Product"
+    title = soup.find("h1")
+    title = title.get_text(strip=True) if title else "Meesho Product"
 
-        # Price
-        try:
-            txt = await page.locator("h4").first.inner_text()
-            price = float(txt.replace("₹", "").replace(",", ""))
-        except:
-            price = None
+    price_el = soup.find("h4")
+    price = re.sub(r"[^\d]", "", price_el.text) if price_el else "0"
 
-        # Image
-        try:
-            image = await page.locator("img").first.get_attribute("src")
-        except:
-            image = None
+    img = soup.find("img")
+    image = img["src"] if img else ""
 
-        await browser.close()
-
-        return {
-            "platform": "Meesho",
-            "title": title,
-            "price": price,
-            "image": image,
-            "url": url,
-        }
+    return {
+        "platform": "Meesho",
+        "url": url,
+        "title": title,
+        "price": float(price),
+        "image": image,
+    }

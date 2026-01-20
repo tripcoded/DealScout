@@ -1,38 +1,26 @@
-from playwright.async_api import async_playwright
+import requests
+from bs4 import BeautifulSoup
+import re
 
-async def scrape_flipkart(url: str):
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        page = await browser.new_page()
+HEADERS = {"User-Agent": "Mozilla/5.0"}
 
-        await page.goto(url, timeout=60000)
+def scrape_flipkart(url: str) -> dict:
+    r = requests.get(url, headers=HEADERS, timeout=20)
+    soup = BeautifulSoup(r.text, "html.parser")
 
-        # Title
-        try:
-            title = await page.locator("span.B_NuCI").inner_text()
-            title = title.strip()
-        except:
-            title = "Unknown Product"
+    title = soup.select_one("span.B_NuCI")
+    title = title.get_text(strip=True) if title else "Flipkart Product"
 
-        # Price
-        try:
-            txt = await page.locator("._30jeq3._16Jk6d").inner_text()
-            price = float(txt.replace("₹", "").replace(",", ""))
-        except:
-            price = None
+    price_el = soup.select_one("div._30jeq3")
+    price = re.sub(r"[^\d]", "", price_el.text) if price_el else "0"
 
-        # Image
-        try:
-            image = await page.locator("._396cs4._2amPTt").get_attribute("src")
-        except:
-            image = None
+    img = soup.select_one("img._396cs4")
+    image = img["src"] if img else ""
 
-        await browser.close()
-
-        return {
-            "platform": "Flipkart",
-            "title": title,
-            "price": price,
-            "image": image,
-            "url": url,
-        }
+    return {
+        "platform": "Flipkart",
+        "url": url,
+        "title": title,
+        "price": float(price),
+        "image": image,
+    }

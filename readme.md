@@ -1,123 +1,230 @@
-**DealScout (TEAM LEXA)**
+# 🛍️ DealScout
 
-DealScout is a hackathon/demo app that helps you **discover and compare product deals** across popular Indian e-commerce platforms.
+> **Compare product deals across Indian e-commerce platforms instantly using image & link search.**
 
-It combines:
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100%2B-green?logo=fastapi)](https://fastapi.tiangolo.com/)
+[![React 19](https://img.shields.io/badge/React-19.2-61DAFB?logo=react)](https://react.dev/)
+[![Vite 7](https://img.shields.io/badge/Vite-7.2-646CFF?logo=vite)](https://vitejs.dev/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-- **A FastAPI backend** for deal lookup via link scraping and image-based product similarity.
-- **A Vite + React frontend** that consumes the API and provides an interactive UI.
+## 🎯 Problem & Solution
 
-[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![React](https://img.shields.io/badge/React-20232A?logo=react&logoColor=61DAFB)](https://react.dev/)
-[![Vite](https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
+**Problem:** Comparing product prices across multiple Indian e-commerce platforms (Amazon, Flipkart, Meesho) requires visiting each site individually—wasting time and mental energy.
 
-## What it does
+**Solution:** DealScout lets you:
+- 📸 **Upload a product image** → Get visually similar items with cross-platform prices
+- 🔗 **Paste a product link** → Instantly see prices on all platforms
+- 💰 **Compare deals** → Find the best price in seconds
 
-- **Link search**: Paste a product link (Amazon / Flipkart / Meesho) and fetch basic pricing/offers.
-- **Image search**: Upload a product image to find visually similar items from a demo catalog.
-- **History**: Tracks recent queries per session.
+Perfect for shoppers, deal hunters, and hackathon demos!
 
-## Screenshots / GIFs
+## ✨ Features
 
-- Add screenshots to `docs/screenshots/` and update these links:
-  - `docs/screenshots/home.png`
-  - `docs/screenshots/results.png`
-  - `docs/screenshots/history.png`
+- **Image-Based Search**: Upload any product photo → ResNet18 embeddings find similar catalog items
+- **Link Scraping**: Paste Amazon/Flipkart/Meesho URLs → Get unified pricing data
+- **Cross-Platform Comparison**: See lowest/highest prices and best platform at a glance
+- **Session History**: Tracks recent searches per user (in-memory, 10 searches max)
+- **Modern Stack**: FastAPI + React with minimal dependencies
+- **Interactive API Docs**: Built-in Swagger UI at `/docs`
 
-## Tech stack
-
-- **Frontend**: React + Vite
-- **Backend**: FastAPI + Uvicorn
-- **ML (demo)**: torchvision ResNet18 embeddings (CPU)
-- **Scraping (demo)**: platform-specific scrapers (Amazon/Flipkart/Meesho)
-
-## Project layout
-
-- `backend/` — FastAPI backend, catalog and scrapers.
-- `frontend/` — Vite + React demo app.
-
-## Run locally
+## 🚀 Quick Start
 
 ### Prerequisites
+- **Python 3.10+** and pip
+- **Node.js 16+** and npm
+- **Git**
 
-- Python 3.10+
-- Node.js 16+ (recommended: 18+)
+### Backend Setup (PowerShell on Windows)
 
-### Backend (FastAPI)
+```powershell
+cd backend
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+uvicorn app:app --reload --host 0.0.0.0 --port 8000
+```
 
-From the repository root:
+✅ Backend runs at `http://localhost:8000`  
+📖 API docs at `http://localhost:8000/docs`
 
-1. Create and activate a virtual environment:
+### Frontend Setup
 
-   PowerShell:
+```powershell
+cd frontend
+npm install
+npm run dev
+```
 
-   `python -m venv backend\venv; backend\venv\Scripts\Activate.ps1`
+✅ Frontend runs at `http://localhost:5173`
 
-2. Install dependencies:
+**Note:** Ensure backend is running before opening the frontend!
 
-   `pip install -r backend\requirements.txt`
+## 📡 API Endpoints
 
-3. Start the API:
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `POST /search/image` | POST | Upload image, get similar products with prices |
+| `POST /search/link` | POST | Paste product link, scrape platform data |
+| `GET /history` | GET | Get search history for a session |
+| `GET /` | GET | Health check |
 
-   `uvicorn backend.app:app --reload --host 0.0.0.0 --port 8000`
+### Example Requests
 
-API root: `http://localhost:8000/`
+**Image Search:**
+```bash
+curl -X POST http://localhost:8000/search/image \
+  -F "file=@product.jpg" \
+  -F "session_id=user123"
+```
 
-Swagger docs: `http://localhost:8000/docs`
+**Link Search:**
+```bash
+curl -X POST http://localhost:8000/search/link \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://amazon.in/dp/XXXXX", "session_id": "user123"}'
+```
 
-### Frontend (Vite + React)
+## 🏗️ Architecture
 
-From the repository root:
+```
+┌─────────────────────────────────────────────────────┐
+│           React Frontend (Vite)                     │
+│     (localhost:5173, image+link search UI)          │
+└──────────────────┬──────────────────────────────────┘
+                   │ HTTP/JSON
+                   ↓
+┌─────────────────────────────────────────────────────┐
+│         FastAPI Backend (localhost:8000)            │
+├─────────────────────────────────────────────────────┤
+│ • ResNet18 embeddings (image search)                │
+│ • Platform detection & scraping (link search)       │
+│ • Session history management                        │
+│ • Catalog: 5 demo products with cross-platform data │
+└─────────────────────────────────────────────────────┘
+```
 
-1. Install dependencies:
+**Key Components:**
+- **Image Pipeline**: Upload → ResNet18 encode → Cosine similarity → Top-4 results
+- **Link Pipeline**: URL → Platform detection → Scraper routing → Normalized response
+- **Catalog**: [catalog.py](backend/catalog.py) – 5 demo products with Amazon/Flipkart/Meesho offers
 
-   `cd frontend`
+## 📁 Project Structure
 
-   `npm install`
+```
+DealScout/
+├── backend/
+│   ├── app.py                 # FastAPI server, embeddings, endpoints
+│   ├── catalog.py             # Demo product data
+│   ├── requirements.txt        # Python dependencies
+│   ├── render.yaml            # Render.com deployment config
+│   └── scrapers/
+│       ├── amazon.py          # Amazon scraper stub
+│       ├── flipkart.py        # Flipkart scraper stub
+│       └── meesho.py          # Meesho scraper stub
+├── frontend/
+│   ├── src/
+│   │   ├── App.jsx            # Main React component
+│   │   ├── main.jsx           # Entry point
+│   │   └── App.css            # Styling
+│   ├── package.json           # npm dependencies
+│   ├── vite.config.js         # Vite build config
+│   └── index.html             # HTML template
+├── .github/
+│   └── copilot-instructions.md # AI agent guidelines
+└── README.md                  # This file
+```
 
-2. Start the dev server:
+## 📚 Documentation
 
-   `npm run dev`
+- **[Setup & Dev Workflow](CONTRIBUTING.md)** – Detailed setup, coding standards, contribution process
+- **[Deployment Guide](DEPLOYMENT.md)** – Deploy backend to Render, frontend to Vercel/GitHub Pages
+- **[AI Agent Guidelines](.github/copilot-instructions.md)** – For Copilot/Claude development
 
-Vite will serve the UI (typically) at `http://localhost:5173/`.
+## 🛠️ Tech Stack
 
-## API overview
+| Layer | Technology | Purpose |
+|-------|-----------|---------|
+| **Frontend** | React 19, Vite 7, CSS3 | Modern UI, fast dev server |
+| **Backend** | FastAPI, uvicorn | Async API server |
+| **ML/CV** | PyTorch, torchvision (ResNet18) | Image embeddings |
+| **Data** | NumPy, Pillow | Vector ops, image processing |
+| **Scraping** | requests, BeautifulSoup4 | HTTP + HTML parsing stubs |
 
-- `POST /search/image`
-  - multipart form fields:
-    - `file` (image)
-    - `session_id` (optional)
-- `POST /search/link`
-  - JSON body: `{ "url": "<product-url>", "session_id": "<id>" }`
-- `GET /history?session_id=...`
+## 🚢 Deployment
 
-## Live demo (deployment options)
+### Backend (Render.com)
+```bash
+# Automatic via render.yaml
+# Build: pip install -r requirements.txt
+# Start: uvicorn app:app --host 0.0.0.0 --port 8000
+```
 
-This repo has **two deployable pieces**:
+### Frontend (Vercel / GitHub Pages)
+```bash
+# Build: npm run build
+# Output: dist/ folder
+# Deploy: Push to GitHub, connect Vercel, or run `npm run build` + upload to Pages
+```
 
-- **Frontend (static build)**
-  - Vercel: import the repo, set project root to `frontend/`, build command `npm run build`, output `dist/`.
-  - GitHub Pages: build with `npm run build` and publish `frontend/dist` (e.g., via GitHub Actions).
-- **Backend (FastAPI)**
-  - Render / Railway / Fly.io: deploy `backend/` as a Python service, run command `uvicorn backend.app:app --host 0.0.0.0 --port $PORT`.
+See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed steps.
 
-If you deploy the frontend separately, update the frontend API base URL in `frontend/src/App.jsx` (currently `http://localhost:8000`).
+## 🔒 Security & Limitations
 
-## Notes / limitations
+⚠️ **This is a demo/hackathon project. Before production use:**
+- ✗ Scrapers are stubs; implement real scraping with Playwright
+- ✗ CORS is permissive (`"*"`); restrict to your domain
+- ✗ Session history is in-memory; use Redis/database for persistence
+- ✗ Image embeddings are precomputed; use vector DB for scale
+- ✗ No authentication; add JWT tokens for multi-user support
 
-- This is a **demo/proof-of-concept**. Scraping reliability can vary and may break when sites change.
-- Embeddings are computed from sample catalog image URLs at startup; production should use persistent storage (vector DB/cache).
-- CORS is permissive (`allow_origins=["*"]`) for demo; restrict it before production.
+## 📝 Configuration
 
-## Contributing
+Create a `.env` file in the `backend/` folder (see `.env.example`):
 
-- Issues and PRs are welcome. For larger changes, open an issue first to discuss the approach.
+```env
+API_BASE_URL=http://localhost:8000
+CORS_ORIGINS=http://localhost:5173
+MAX_HISTORY_SIZE=10
+```
 
-## License
+## 💡 Common Modifications
 
-- No license file is included yet. Add `LICENSE` if you want to pick a specific OSS license.
+### Add a New Platform
+1. Create `backend/scrapers/myntra.py` with `scrape_myntra(url: str) -> dict`
+2. Import in `app.py` and add to `detect_platform()` logic
+3. Test with `POST /search/link`
 
-## Contact
+### Update Catalog
+Edit [catalog.py](backend/catalog.py) – add products with `id`, `title`, `image_url`, `offers` array.
 
-- Project: `DealScout` (repo owner: `tripcoded`).
+### Change Embedding Model
+Replace ResNet18 in [app.py](backend/app.py) (line 74) with any torchvision model (EfficientNet, ViT, etc.).
+
+## 🤝 Contributing
+
+Contributions welcome! Please:
+1. Fork the repo
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m "Add amazing feature"`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
+
+## 📄 License
+
+This project is licensed under the **MIT License** – see [LICENSE](LICENSE) file for details.
+
+## 📮 Contact & Support
+
+- **Project Name**: DealScout
+- **Team**: TEAM LEXA
+- **Maintainer**: [@tripcoded](https://github.com/tripcoded)
+- **Issues**: [GitHub Issues](../../issues)
+
+---
+
+⭐ **If you found this useful, consider giving us a star!**
+
+

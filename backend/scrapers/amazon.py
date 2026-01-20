@@ -1,44 +1,43 @@
-from playwright.sync_api import sync_playwright
+import requests
+from bs4 import BeautifulSoup
+import re
 
-def scrape_amazon(url: str):
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
-        page.goto(url, timeout=60000)
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+    "Accept-Language": "en-IN,en;q=0.9",
+}
 
-        # title
-        try:
-            title = page.locator("#productTitle").inner_text().strip()
-        except:
-            title = "Unknown Product"
+def clean_price(text):
+    if not text:
+        return None
+    m = re.findall(r"[\d,]+", text)
+    if not m:
+        return None
+    return float(m[0].replace(",", ""))
 
-        # price
-        price = None
-        selectors = [
-            "#priceblock_ourprice",
-            "#priceblock_dealprice",
-            ".a-price .a-offscreen",
-        ]
-        for s in selectors:
-            try:
-                txt = page.locator(s).first.inner_text().strip()
-                price = float(txt.replace("₹", "").replace(",", ""))
-                break
-            except:
-                pass
+def scrape_amazon(url: str) -> dict:
+    r = requests.get(url, headers=HEADERS, timeout=20)
+    r.raise_for_status()
+    soup = BeautifulSoup(r.text, "html.parser")
 
-        # image
-        try:
-            image = page.locator("#landingImage").get_attribute("src")
-        except:
-            image = None
+    title = (
+        soup.select_one("#productTitle") or
+        soup.find("meta", property="og:title")
+    )
+    title = title.get_text(strip=True) if title else "Amazon Product"
 
-        browser.close()
+    price = None
+    price_el = soup.select_one("span.a-price span.a-offscreen")
+    if price_el:
+        price = clean_price(price_el.text)
 
-        return {
-            "platform": "Amazon",
-            "title": title,
-            "price": price,
-            "image": image,
-            "url": url,
-        }
+    img = soup.select_one("#landingImage")
+    image = img["src"] if img else ""
+
+    return {
+        "platform": "Amazon",
+        "url": url,
+        "title": title,
+        "price": price or 0,
+        "image": image,
+    }
