@@ -1,6 +1,8 @@
 # 🛍️ DealScout
 
 > **Compare product deals across Indian e-commerce platforms instantly using image & link search.**
+> ** Click here to visit site : https://inquisitive-quokka-bc4bab.netlify.app/**
+
 
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100%2B-green?logo=fastapi)](https://fastapi.tiangolo.com/)
